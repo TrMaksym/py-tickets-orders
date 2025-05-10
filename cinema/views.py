@@ -69,7 +69,7 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = MovieSession.objects.all()
 
-        queryset = queryset.annotate(tickets_count=Count('tickets'))
+        queryset = queryset.annotate(tickets_count=Count("tickets"))
 
         movie_id = self.request.query_params.get("movie")
         date_str = self.request.query_params.get("date")
@@ -84,12 +84,8 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
             except ValueError:
                 pass
 
-        queryset = queryset.annotate(
-            total_seats=F('cinema_hall__rows') * F('cinema_hall__seats_in_row'),
-            tickets_available=F('cinema_hall__rows') * F('cinema_hall__seats_in_row') - Count('tickets')
-        )
-
         return queryset
+
 
 class OrderPagination(PageNumberPagination):
     page_size = 10
@@ -103,5 +99,5 @@ class OrderViewSet(viewsets.ModelViewSet):
     pagination_class = OrderPagination
 
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user).order_by("-created_at")
-
+        return Order.objects.filter(
+            user=self.request.user).order_by("-created_at")
