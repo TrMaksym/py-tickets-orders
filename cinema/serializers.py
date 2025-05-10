@@ -1,5 +1,6 @@
 from rest_framework import serializers
-
+from django.utils import timezone
+from datetime import datetime
 from cinema.models import Genre, Actor, CinemaHall, Movie, MovieSession, Order, Ticket
 
 
@@ -56,6 +57,12 @@ class MovieSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = MovieSession
         fields = ("id", "show_time", "movie", "cinema_hall")
+
+    def validate_show_time(self, value):
+        # Конвертуємо наївний datetime у timezone-aware, якщо потрібно
+        if value and not timezone.is_aware(value):
+            value = timezone.make_aware(value, timezone=timezone.utc)
+        return value
 
 
 class MovieSessionListSerializer(serializers.ModelSerializer):
