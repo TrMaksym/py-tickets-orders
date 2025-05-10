@@ -3,7 +3,7 @@ from datetime import datetime
 from django.db.models import Count, F
 from rest_framework import viewsets, generics
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 
 from cinema.models import Genre, Actor, CinemaHall, Movie, MovieSession, Order
 
@@ -16,7 +16,7 @@ from cinema.serializers import (
     MovieSessionListSerializer,
     MovieDetailSerializer,
     MovieSessionDetailSerializer,
-    OrderSerializer,
+    OrderSerializer, MovieListSerializer,
 )
 
 
@@ -35,8 +35,37 @@ class CinemaHallViewSet(viewsets.ModelViewSet):
     serializer_class = CinemaHallSerializer
 
 
-class MovieViewSet(viewsets.ReadOnlyModelViewSet):
+from rest_framework.permissions import AllowAny
+
+class MovieViewSet(viewsets.ModelViewSet):
     serializer_class = MovieSerializer
+    permission_classes = [AllowAny]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return MovieListSerializer
+        if self.action == "retrieve":
+            return MovieDetailSerializer
+        return MovieSerializer
+
+    def get_queryset(self):
+        queryset = Movie.objects.all()
+        genres = self.request.query_params.get("genres")
+        actors = self.request.query_params.get("actors")
+        title = self.request.query_params.get("title")
+
+        if genres:
+            genre_ids = [int(g) for g in genres.split(",")]
+            queryset = queryset.filter(genres__id__in=genre_ids)
+
+        if actors:
+            actor_ids = [int(a) for a in actors.split(",")]
+            queryset = queryset.filter(actors__id__in=actor_ids)
+
+        if title:
+            queryset = queryset.filter(title__icontains=title)
+
+        return queryset.distinct()
 
     def get_queryset(self):
         queryset = Movie.objects.all()
@@ -64,11 +93,12 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == "list":
             return MovieSessionListSerializer
+        if self.action in ["create", "update", "partial_update"]:
+            return MovieSessionSerializer
         return MovieSessionDetailSerializer
 
     def get_queryset(self):
         queryset = MovieSession.objects.all()
-
         queryset = queryset.annotate(tickets_count=Count("tickets"))
 
         movie_id = self.request.query_params.get("movie")
