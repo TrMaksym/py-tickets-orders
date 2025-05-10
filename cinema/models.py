@@ -54,6 +54,7 @@ class MovieSession(models.Model):
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE)
     cinema_hall = models.ForeignKey(CinemaHall, on_delete=models.CASCADE)
 
+
     class Meta:
         ordering = ["-show_time"]
 
